@@ -59,6 +59,10 @@ module Grid =
     let findSquare grid x y = 
         grid |> List.find (fun s -> s.X = x && s.Y = y)
 
+    let setValue grid x y newVal = 
+        grid 
+        |> List.map (fun s -> if s.X = x && s.Y = y then { s with Val = Some newVal } else s)
+
     let printRow (grid: Square list) i = 
         let row = grid |> List.where (fun s -> s.Y = i) |> List.sortBy (fun s -> s.X) 
 
@@ -135,34 +139,80 @@ for x in 0..9 do
             | _ -> Grid.appendEmptySquare grid x y (Square.calculateRegion x y) 
 
 Grid.print grid
-Grid.printRegion grid
+//Grid.printRegion grid
 
-let canPlace2InTopLeft() = 
-    // Check the N region rule
-    let region = Grid.findRegion grid 1
-    let isLessThanRegionSize = 2 <= region.Length
-    let isAlreadyInRegion = region |> List.exists (fun s -> s.Val = Some 2)
+let canPlace x y newVal = 
+    let square = Grid.findSquare grid x y
 
-    let passesNRegionRule = isLessThanRegionSize && (not isAlreadyInRegion)
+    if square.Val.IsSome then false
+    else
+        // Check the N region rule
+        let regionIndex = square.RegionIndex
+        let region = Grid.findRegion grid regionIndex
 
-    printfn "passesNRegionRule %b" passesNRegionRule
+        let isLessThanRegionSize = newVal <= region.Length
+        let isAlreadyInRegion = region |> List.exists (fun s -> s.Val = Some newVal)
 
-    // Check the K Taxicab rule
-    let topLeft = Grid.findSquare grid 0 9
-    let squaresLessThanKAway = 
-        grid |> List.filter (fun s -> Square.calculateTaxiCab topLeft s <= 2)
+        let passesNRegionRule = isLessThanRegionSize && (not isAlreadyInRegion)
 
-    let a2IsWithinKdistance = squaresLessThanKAway |> List.exists (fun s -> s.Val = Some 2)
+        //if x = 2  && y = 2 && newVal = 1 then
+        //    printfn "%A" square
+        //    //printfn "%A" region
+        //    printfn "%d isLessThanRegionSize %b" newVal isLessThanRegionSize
+        //    printfn "%d isAlreadyInRegion %b" newVal isAlreadyInRegion
+        //    printfn "%d passesNRegionRule %b" newVal passesNRegionRule
 
-    let passesKTaxiCabRule = not a2IsWithinKdistance
+        // Check the K Taxicab rule
+        let squaresLessThanKAway = 
+            grid |> List.filter (fun s -> Square.calculateTaxiCab square s < newVal)
 
-    printfn "passesKTaxiCabRule %b" passesKTaxiCabRule
+        let aClashingValIsWithinKdistance = squaresLessThanKAway |> List.exists (fun s -> s.Val = Some newVal)
 
-    passesKTaxiCabRule && passesNRegionRule
+        let passesKTaxiCabRule = not aClashingValIsWithinKdistance
 
-let can = canPlace2InTopLeft()
+        //if x = 2  && y = 2 && newVal = 1 then
+        //    printfn "%d passesKTaxiCabRule %b" newVal passesKTaxiCabRule
 
+        passesKTaxiCabRule && passesNRegionRule
+
+let trySquare x y = 
+    let mutable validGuesses = []
+
+    for possible in 1..9 do 
+        if canPlace x y possible then 
+            validGuesses <- possible::validGuesses
+            //printfn "%d was valid" possible
+        //printfn "tried %d" possible
+
+    if validGuesses.Length = 1 then 
+        printfn "Found a certain placement of %d in (%d, %d)" validGuesses.Head x y
+        Some validGuesses.Head
+    else 
+        //printfn "Impossible to determine"
+        None
         
+let tryPass() = 
+    let mutable keepTrying = true
+
+    for x in 0..9 do
+        for y in 0..9 do
+            let result = trySquare x y
+
+            if result.IsSome then 
+                printfn "Omg (%d, %d): %d" x y result.Value
+                grid <- Grid.setValue grid x y result.Value
+
+    Grid.print grid
+    printfn "===================================="
+
+let main() = 
+    for iterations in 0..3 do 
+        tryPass()
+
+main()
+
+
+
 
 
 
