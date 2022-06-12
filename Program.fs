@@ -41,7 +41,6 @@ module Square =
 
         regions[y][x]
 
-
 let mutable grid: Square list = []
 
 module Grid = 
@@ -62,6 +61,18 @@ module Grid =
     let setValue grid x y newVal = 
         grid 
         |> List.map (fun s -> if s.X = x && s.Y = y then { s with Val = Some newVal } else s)
+
+    let findSquaresKAway grid square = 
+        if square.Val.IsNone then failwith "did not expect isSated to be called for a None square"
+        else 
+            grid |> List.filter (fun s -> Square.calculateTaxiCab s square = square.Val.Value)
+
+    let squareIsSated grid square = 
+        if square.Val.IsNone then failwith "did not expect isSated to be called for a None square"
+        else 
+            let v = square.Val.Value
+            let squaresKAway = findSquaresKAway grid square
+            squaresKAway |> List.exists (fun s -> s.Val = Some v)
 
     let printRow (grid: Square list) i = 
         let row = grid |> List.where (fun s -> s.Y = i) |> List.sortBy (fun s -> s.X) 
@@ -104,6 +115,7 @@ module Grid =
         printRow grid 2
         printRow grid 1
         printRow grid 0
+        printfn "===================================="
 
         
     let printRegion (grid: Square list) = 
@@ -117,6 +129,7 @@ module Grid =
         printRegionRow grid 2
         printRegionRow grid 1
         printRegionRow grid 0
+        printfn "===================================="
 
 for x in 0..9 do
     for y in 0..9 do 
@@ -155,7 +168,7 @@ let canPlace x y newVal =
 
         let passesNRegionRule = isLessThanRegionSize && (not isAlreadyInRegion)
 
-        //if x = 2  && y = 2 && newVal = 1 then
+        //if x = 9  && y = 1 && newVal = 2 then
         //    printfn "%A" square
         //    //printfn "%A" region
         //    printfn "%d isLessThanRegionSize %b" newVal isLessThanRegionSize
@@ -191,9 +204,8 @@ let trySquare x y =
         //printfn "Impossible to determine"
         None
         
-let tryPass() = 
-    let mutable keepTrying = true
-
+/// Go through each square, see if only one number can be put in that square        
+let tryPassSquareBySquare() = 
     for x in 0..9 do
         for y in 0..9 do
             let result = trySquare x y
@@ -203,11 +215,38 @@ let tryPass() =
                 grid <- Grid.setValue grid x y result.Value
 
     Grid.print grid
-    printfn "===================================="
+
+let tryNumber square = 
+    let isHappy = Grid.squareIsSated grid square
+
+    if not isHappy then 
+        // has been None checked before
+        let setValue = square.Val.Value
+        let squaresKAway = Grid.findSquaresKAway grid square //grid |> List.filter (fun s -> Square.calculateTaxiCab s square = setValue)
+        
+        //if square.X = 8 && square.Y = 0 then 
+        //    printfn "squaresKAway: %A" squaresKAway
+
+        let possiblePlacements = 
+            squaresKAway
+            |> List.filter (fun s -> canPlace s.X s.Y setValue)
+        
+        if possiblePlacements.Length = 1 then 
+            printfn "Found a certain value by the tryNumber method! (%d, %d): %d" possiblePlacements.Head.X possiblePlacements.Head.Y setValue
+            grid <- Grid.setValue grid possiblePlacements.Head.X possiblePlacements.Head.Y setValue
+
+// Go through each set number, check the squares K away, if only square is valid, it must be there
+let tryPassNumberByNumber() = 
+    let setNumbers = grid |> List.filter (fun s -> s.Val.IsSome)
+    setNumbers |> List.iter tryNumber
+    
+    Grid.print grid
+    
 
 let main() = 
     for iterations in 0..3 do 
-        tryPass()
+        tryPassSquareBySquare()
+        tryPassNumberByNumber()
 
 main()
 
