@@ -22,6 +22,9 @@ module Square =
 
     let printRegion s = sprintf "%d" s.RegionIndex
 
+    let calculateTaxiCab squareA squareB = 
+        abs(squareA.X - squareB.X) + abs(squareA.Y - squareB.Y)
+
     let calculateRegion x y = 
         let regions = [
             [ 2; 2; 2; 2; 10; 10; 17; 17; 17; 17 ]
@@ -49,6 +52,12 @@ module Grid =
     let appendSquare grid x y v region = 
         let s = Square.create x y (Some v) region
         s::grid
+
+    let findRegion grid regionIndex = 
+        grid |> List.filter (fun s -> s.RegionIndex = regionIndex)
+
+    let findSquare grid x y = 
+        grid |> List.find (fun s -> s.X = x && s.Y = y)
 
     let printRow (grid: Square list) i = 
         let row = grid |> List.where (fun s -> s.Y = i) |> List.sortBy (fun s -> s.X) 
@@ -128,6 +137,30 @@ for x in 0..9 do
 Grid.print grid
 Grid.printRegion grid
 
+let canPlace2InTopLeft() = 
+    // Check the N region rule
+    let region = Grid.findRegion grid 1
+    let isLessThanRegionSize = 2 <= region.Length
+    let isAlreadyInRegion = region |> List.exists (fun s -> s.Val = Some 2)
+
+    let passesNRegionRule = isLessThanRegionSize && (not isAlreadyInRegion)
+
+    printfn "passesNRegionRule %b" passesNRegionRule
+
+    // Check the K Taxicab rule
+    let topLeft = Grid.findSquare grid 0 9
+    let squaresLessThanKAway = 
+        grid |> List.filter (fun s -> Square.calculateTaxiCab topLeft s <= 2)
+
+    let a2IsWithinKdistance = squaresLessThanKAway |> List.exists (fun s -> s.Val = Some 2)
+
+    let passesKTaxiCabRule = not a2IsWithinKdistance
+
+    printfn "passesKTaxiCabRule %b" passesKTaxiCabRule
+
+    passesKTaxiCabRule && passesNRegionRule
+
+let can = canPlace2InTopLeft()
 
         
 
