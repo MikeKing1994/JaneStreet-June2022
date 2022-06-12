@@ -191,7 +191,7 @@ let canPlace x y newVal =
 let trySquare x y = 
     let mutable validGuesses = []
 
-    for possible in 1..9 do 
+    for possible in 1..10 do 
         if canPlace x y possible then 
             validGuesses <- possible::validGuesses
             //printfn "%d was valid" possible
@@ -239,7 +239,7 @@ let tryNumber square =
 let tryPassNumberByNumber() = 
     let setNumbers = grid |> List.filter (fun s -> s.Val.IsSome)
     setNumbers |> List.iter tryNumber
-    
+
     Grid.print grid
     
 
