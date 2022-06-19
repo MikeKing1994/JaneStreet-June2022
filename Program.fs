@@ -235,18 +235,73 @@ let tryNumber square =
             printfn "Found a certain value by the tryNumber method! (%d, %d): %d" possiblePlacements.Head.X possiblePlacements.Head.Y setValue
             grid <- Grid.setValue grid possiblePlacements.Head.X possiblePlacements.Head.Y setValue
 
-// Go through each set number, check the squares K away, if only square is valid, it must be there
+/// Go through each set number, check the squares K away, if only square is valid, it must be there
 let tryPassNumberByNumber() = 
     let setNumbers = grid |> List.filter (fun s -> s.Val.IsSome)
     setNumbers |> List.iter tryNumber
 
     Grid.print grid
     
+let tryRegion region = 
+    let regionSize = region |> List.length
+
+    // for each number we have to place in the region
+    for i in [1..regionSize] do 
+        // if the number is not already placed in the region
+        if region |> List.exists (fun s -> s.Val.IsSome && s.Val.Value = i) |> not then
+            // see if there's only one square on which we can put that number
+            let emptySquaresInRegion = region |> List.filter (fun s -> s.Val.IsNone)
+            let possiblePlacements =
+                emptySquaresInRegion 
+                |> List.filter (fun s -> canPlace s.X s.Y i)
+            
+            if possiblePlacements.Length = 1 then 
+                printfn "Found a certain value by the tryRegion method! (%d, %d): %d" possiblePlacements.Head.X possiblePlacements.Head.Y i
+                grid <- Grid.setValue grid possiblePlacements.Head.X possiblePlacements.Head.Y i
+
+/// Go through each region, look at the N numbers, if there's only one place a number can go then place it
+let tryPassRegionByRegion() = 
+    let regions = [1..24] |> List.map (Grid.findRegion grid)
+    regions |> List.iter tryRegion
+
+    Grid.print grid
+
 
 let main() = 
-    for iterations in 0..3 do 
+    // safe guess from uncoded logic
+    grid <- Grid.setValue grid 2 6 2
+    grid <- Grid.setValue grid 5 6 6
+    grid <- Grid.setValue grid 8 9 6
+    grid <- Grid.setValue grid 2 9 6
+    grid <- Grid.setValue grid 1 0 6
+    grid <- Grid.setValue grid 6 6 3
+    grid <- Grid.setValue grid 6 0 4
+    grid <- Grid.setValue grid 3 1 4
+    grid <- Grid.setValue grid 6 7 5
+    grid <- Grid.setValue grid 5 8 1 // This one could be coded for, we're saying that in the region, there are multiple valid placements, but only one would be possible to make the placement ever "happy"
+    grid <- Grid.setValue grid 5 1 1
+    grid <- Grid.setValue grid 6 2 3
+    grid <- Grid.setValue grid 0 3 3
+    grid <- Grid.setValue grid 2 8 2
+    grid <- Grid.setValue grid 3 9 5
+    grid <- Grid.setValue grid 0 4 1
+    grid <- Grid.setValue grid 4 2 1
+    grid <- Grid.setValue grid 4 3 2
+
+    
+    // unsafe guesses
+    //grid <- Grid.setValue grid 5 4 1
+    //grid <- Grid.setValue grid 5 5 2
+
+    for iterations in 0..4 do         
         tryPassSquareBySquare()
         tryPassNumberByNumber()
+        tryPassRegionByRegion()
+
+    
+
+
+
 
 main()
 
